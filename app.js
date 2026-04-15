@@ -1,8 +1,7 @@
-import { getNote, countLines } from './notes.js';
+import { getNote, countLinesByText, countVisualLines } from './notes.js';
 import { playNote, playSequence } from './audio.js';
 
 const STORAGE_KEY = 'doremi-todos';
-
 let todos = [];
 
 // --- Storage ---
@@ -27,6 +26,31 @@ function todayTodos() {
   return todos.filter(t => t.date === today);
 }
 
+// --- Note DOM builder ---
+function buildNoteContainer(note) {
+  const container = document.createElement('div');
+  container.className = 'note-container';
+
+  const head = document.createElement('div');
+  head.className = 'note-head';
+  head.style.background = note.color;
+  head.style.top = (note.staffY - 5) + 'px';
+
+  const stem = document.createElement('div');
+  stem.className = 'note-stem';
+  stem.style.background = note.color;
+  // stem goes upward from note head
+  stem.style.top = (note.staffY - 5 - 24) + 'px';
+
+  const label = document.createElement('span');
+  label.className = 'note-label';
+  label.textContent = note.name;
+  label.style.color = note.color;
+
+  container.append(head, stem, label);
+  return container;
+}
+
 // --- Render ---
 function render() {
   const list = document.getElementById('todo-list');
@@ -38,38 +62,118 @@ function render() {
     return;
   }
 
-  list.innerHTML = items.map((todo, i) => {
-    const lines = countLines(todo.text);
+  list.innerHTML = '';
+
+  items.forEach((todo) => {
+    const lines = countLinesByText(todo.text);
     const note = getNote(lines, todo.completed);
-    return `
-      <li class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
-        <div class="note-badge" style="background:${note.color}" title="${note.name}">${note.name}</div>
-        <div class="todo-check" data-action="toggle"></div>
-        <div class="todo-text">${escapeHtml(todo.text)}</div>
-        <button class="todo-delete" data-action="delete" title="삭제">&times;</button>
-      </li>`;
-  }).join('');
+
+    const li = document.createElement('li');
+    li.className = 'todo-item' + (todo.completed ? ' completed' : '');
+    li.dataset.id = todo.id;
+
+    const noteEl = buildNoteContainer(note);
+
+    const check = document.createElement('div');
+    check.className = 'todo-check';
+    check.dataset.action = 'toggle';
+
+    const textDiv = document.createElement('div');
+    textDiv.className = 'todo-text';
+    textDiv.textContent = todo.text;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'todo-delete';
+    delBtn.dataset.action = 'delete';
+    delBtn.title = '삭제';
+    delBtn.innerHTML = '&times;';
+
+    li.append(noteEl, check, textDiv, delBtn);
+    list.appendChild(li);
+  });
+
+  // 렌더링 후 시각적 줄 수 측정 & 음표 업데이트
+  requestAnimationFrame(() => updateNotesAfterRender(items));
 
   // Summary
-  const melody = items.map(t => getNote(countLines(t.text), t.completed).name);
+  const melody = items.map(t => getNote(t._vl || countLinesByText(t.text), t.completed).name);
   document.getElementById('summary').textContent = `${items.length}개 — ${melody.join(' ')}`;
 }
 
-function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+function updateNotesAfterRender(items) {
+  const todoEls = document.querySelectorAll('.todo-item');
+  const summaryParts = [];
+
+  todoEls.forEach((el, i) => {
+    const textEl = el.querySelector('.todo-text');
+    const vl = countVisualLines(textEl);
+    const todo = items[i];
+    if (!todo) return;
+    todo._vl = vl;
+
+    const note = getNote(vl, todo.completed);
+    summaryParts.push(note.name);
+
+    // 음표 컨테이너 업데이트
+    const container = el.querySelector('.note-container');
+    if (!container) return;
+
+    const head = container.querySelector('.note-head');
+    const stem = container.querySelector('.note-stem');
+    const label = container.querySelector('.note-label');
+
+    if (head) {
+      head.style.background = note.color;
+      head.style.top = (note.staffY - 5) + 'px';
+    }
+    if (stem) {
+      stem.style.background = note.color;
+      stem.style.top = (note.staffY - 5 - 24) + 'px';
+    }
+    if (label) {
+      label.textContent = note.name;
+      label.style.color = note.color;
+    }
+  });
+
+  document.getElementById('summary').textContent =
+    `${items.length}개 — ${summaryParts.join(' ')}`;
+}
+
+// --- Note float animation ---
+function showNoteAnimation(noteName, noteColor) {
+  const el = document.createElement('div');
+  el.className = 'note-float';
+  el.textContent = '\u266A ' + noteName;
+  el.style.color = noteColor;
+
+  const inputArea = document.querySelector('.input-area');
+  const rect = inputArea.getBoundingClientRect();
+  el.style.left = (rect.left + rect.width / 2) + 'px';
+  el.style.top = rect.bottom + 'px';
+
+  document.body.appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
 }
 
 // --- Actions ---
 function addTodo(text) {
   if (!text.trim()) return;
+  const trimmed = text.trim();
+  const lines = countLinesByText(trimmed);
+  const note = getNote(lines, false);
+
   todos.push({
     id: crypto.randomUUID(),
-    text: text.trim(),
+    text: trimmed,
     completed: false,
     date: todayStr(),
   });
   save();
   render();
+
+  playNote(note.freq);
+  showNoteAnimation(note.name, note.color);
 }
 
 function toggleTodo(id) {
@@ -79,11 +183,10 @@ function toggleTodo(id) {
   save();
   render();
 
-  // 토글 후 음 재생
   const items = todayTodos();
-  const idx = items.findIndex(t => t.id === id);
-  if (idx >= 0) {
-    const note = getNote(countLines(items[idx].text), items[idx].completed);
+  const t = items.find(t => t.id === id);
+  if (t) {
+    const note = getNote(t._vl || countLinesByText(t.text), t.completed);
     playNote(note.freq);
   }
 }
@@ -102,29 +205,13 @@ document.getElementById('add-btn').addEventListener('click', () => {
   input.style.height = 'auto';
 });
 
-let isComposing = false;
-
-document.getElementById('todo-input').addEventListener('compositionstart', () => {
-  isComposing = true;
-});
-
-document.getElementById('todo-input').addEventListener('compositionend', () => {
-  isComposing = false;
-});
-
-document.getElementById('todo-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !isComposing) {
-    e.preventDefault();
-    document.getElementById('add-btn').click();
-  }
-});
-
 // Auto-resize textarea
 document.getElementById('todo-input').addEventListener('input', function () {
   this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  this.style.height = Math.min(this.scrollHeight, 160) + 'px';
 });
 
+// Todo list click delegation
 document.getElementById('todo-list').addEventListener('click', (e) => {
   const item = e.target.closest('.todo-item');
   if (!item) return;
@@ -136,11 +223,10 @@ document.getElementById('todo-list').addEventListener('click', (e) => {
   } else if (action === 'delete') {
     deleteTodo(id);
   } else {
-    // 아이템 클릭 시 음 재생
     const items = todayTodos();
     const todo = items.find(t => t.id === id);
     if (todo) {
-      const note = getNote(countLines(todo.text), todo.completed);
+      const note = getNote(todo._vl || countLinesByText(todo.text), todo.completed);
       playNote(note.freq);
       item.classList.add('highlight');
       setTimeout(() => item.classList.remove('highlight'), 400);
@@ -153,13 +239,12 @@ document.getElementById('play-all').addEventListener('click', function () {
   const items = todayTodos();
   if (items.length === 0) return;
 
-  const freqs = items.map(t => getNote(countLines(t.text), t.completed).freq);
+  const freqs = items.map(t => getNote(t._vl || countLinesByText(t.text), t.completed).freq);
   const duration = playSequence(freqs);
 
   this.classList.add('playing');
   this.disabled = true;
 
-  // 각 아이템 순서대로 하이라이트
   const listItems = document.querySelectorAll('.todo-item');
   listItems.forEach((el, i) => {
     setTimeout(() => {
@@ -172,6 +257,13 @@ document.getElementById('play-all').addEventListener('click', function () {
     this.classList.remove('playing');
     this.disabled = false;
   }, duration * 1000);
+});
+
+// Resize → 줄 수 재계산
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => render(), 200);
 });
 
 // Date label
