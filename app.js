@@ -102,8 +102,18 @@ document.getElementById('add-btn').addEventListener('click', () => {
   input.style.height = 'auto';
 });
 
+let isComposing = false;
+
+document.getElementById('todo-input').addEventListener('compositionstart', () => {
+  isComposing = true;
+});
+
+document.getElementById('todo-input').addEventListener('compositionend', () => {
+  isComposing = false;
+});
+
 document.getElementById('todo-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !isComposing) {
     e.preventDefault();
     document.getElementById('add-btn').click();
   }
