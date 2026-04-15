@@ -2,7 +2,9 @@ import { getNote, countLinesByText, countVisualLines } from './notes.js';
 import { playNote, playSequence } from './audio.js';
 
 const STORAGE_KEY = 'doremi-todos';
+const SORT_KEY = 'doremi-sort';
 let todos = [];
+let sortOrder = localStorage.getItem(SORT_KEY) || 'asc';
 
 // --- Storage ---
 function save() {
@@ -23,7 +25,9 @@ function todayStr() {
 
 function todayTodos() {
   const today = todayStr();
-  return todos.filter(t => t.date === today);
+  const items = todos.filter(t => t.date === today);
+  if (sortOrder === 'desc') items.reverse();
+  return items;
 }
 
 // --- Note DOM builder ---
@@ -205,6 +209,19 @@ document.getElementById('add-btn').addEventListener('click', () => {
   input.style.height = 'auto';
 });
 
+// Sort toggle
+function updateSortButton() {
+  const btn = document.getElementById('sort-toggle');
+  btn.innerHTML = sortOrder === 'asc' ? '&#8595; 오래된순' : '&#8593; 최신순';
+}
+
+document.getElementById('sort-toggle').addEventListener('click', () => {
+  sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+  localStorage.setItem(SORT_KEY, sortOrder);
+  updateSortButton();
+  render();
+});
+
 // Auto-resize textarea
 document.getElementById('todo-input').addEventListener('input', function () {
   this.style.height = 'auto';
@@ -273,4 +290,5 @@ document.getElementById('date-label').textContent = new Date().toLocaleDateStrin
 
 // Init
 load();
+updateSortButton();
 render();
