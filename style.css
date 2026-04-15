@@ -1,0 +1,224 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --border: #2a2a4a;
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --accent: #4dabf7;
+}
+
+body {
+  font-family: -apple-system, 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.app {
+  width: 100%;
+  max-width: 560px;
+}
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+header h1 span {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+#play-all {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+#play-all:hover { background: var(--border); }
+#play-all:disabled { opacity: 0.4; cursor: not-allowed; }
+#play-all.playing { animation: pulse 0.6s infinite alternate; }
+
+@keyframes pulse {
+  from { border-color: var(--accent); box-shadow: 0 0 4px var(--accent); }
+  to { border-color: var(--border); box-shadow: none; }
+}
+
+/* Input */
+.input-area {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.input-area textarea {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 42px;
+  max-height: 120px;
+}
+
+.input-area textarea::placeholder { color: var(--text-dim); }
+.input-area textarea:focus { outline: none; border-color: var(--accent); }
+
+.input-area button {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 0 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  align-self: flex-end;
+  height: 42px;
+}
+
+.input-area button:hover { opacity: 0.85; }
+
+/* Todo List */
+.todo-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: border-color 0.2s, opacity 0.3s;
+  cursor: pointer;
+}
+
+.todo-item:hover { border-color: var(--text-dim); }
+.todo-item.completed { opacity: 0.55; }
+.todo-item.highlight { animation: flash 0.4s; }
+
+@keyframes flash {
+  0%, 100% { background: var(--surface); }
+  50% { background: var(--border); }
+}
+
+/* Note badge */
+.note-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* Checkbox */
+.todo-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.todo-check:hover { border-color: var(--accent); }
+.todo-item.completed .todo-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.todo-item.completed .todo-check::after {
+  content: '';
+  width: 8px;
+  height: 5px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-right: none;
+  transform: rotate(-45deg);
+  margin-top: -2px;
+}
+
+/* Text */
+.todo-text {
+  flex: 1;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.todo-item.completed .todo-text {
+  text-decoration: line-through;
+  color: var(--text-dim);
+}
+
+/* Delete */
+.todo-delete {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.todo-item:hover .todo-delete { opacity: 1; }
+.todo-delete:hover { color: #ff6b6b; }
+
+/* Summary */
+.summary {
+  margin-top: 20px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 40px 0;
+  font-size: 0.95rem;
+}

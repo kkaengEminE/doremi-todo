@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doremi Todo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Doremi Todo<span id="date-label"></span></h1>
+      <button id="play-all" title="순서대로 재생">&#9654; 재생</button>
+    </header>
+
+    <div class="input-area">
+      <textarea id="todo-input" placeholder="할 일을 입력하세요 (여러 줄 가능)" rows="1"></textarea>
+      <button id="add-btn">추가</button>
+    </div>
+
+    <ul class="todo-list" id="todo-list"></ul>
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
